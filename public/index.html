@@ -6,6 +6,9 @@
   <title>Page Title</title>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
+  <script src="js/commons.js"></Script>
+  <script src="js/face-api.js"></script>
+  <script src="faceDetectionControls.js"></script>
 </head>
 <style>
   #container {
@@ -23,9 +26,58 @@
 <body>
   <h1>HELLO</h1>
   <div id="container">
-    <video autoplay="true" id="videoElement">
+    <video autoplay="true" id="videoElement" onloadedmetadata="onPlay(this)">
     </video>
+    <canvas id="overlay" />
   </div>
   <script src='main.js'></script>
+  <script>
+    function updateTimeStats(timeInMs) {
+        forwardTimes = [timeInMs].concat(forwardTimes).slice(0, 30)
+        const avgTimeInMs = forwardTimes.reduce((total, t) => total + t) / forwardTimes.length
+        $('#time').val(`${Math.round(avgTimeInMs)} ms`)
+        $('#fps').val(`${faceapi.round(1000 / avgTimeInMs)}`)
+      }
+    async function onPlay() {
+      const videoEl = $('#videoElement').get(0)
+
+      if(videoEl.paused || videoEl.ended || !isFaceDetectionModelLoaded())
+        return setTimeout(() => onPlay())
+
+
+      const options = getFaceDetectorOptions()
+
+      const ts = Date.now()
+
+      const result = await faceapi.detectSingleFace(videoEl, options)
+        .withAgeAndGender()
+
+      updateTimeStats(Date.now() - ts)
+
+      if (result) {
+        const canvas = $('#overlay').get(0)
+        const dims = faceapi.matchDimensions(canvas, videoEl, true)
+
+        const resizedResult = faceapi.resizeResults(result, dims)
+        if (withBoxes) {
+          faceapi.draw.drawDetections(canvas, resizedResult)
+        }
+        const { age, gender, genderProbability } = resizedResult
+
+        // interpolate gender predictions over last 30 frames
+        // to make the displayed age more stable
+        const interpolatedAge = interpolateAgePredictions(age)
+        new faceapi.draw.DrawTextField(
+          [
+            `${faceapi.round(interpolatedAge, 0)} years`,
+            `${gender} (${faceapi.round(genderProbability)})`
+          ],
+          result.detection.box.bottomLeft
+        ).draw(canvas)
+      }
+
+      setTimeout(() => onPlay())
+    }
+  </script>
 </body>
 </html>
