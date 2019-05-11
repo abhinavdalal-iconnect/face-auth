@@ -1,4 +1,4 @@
-// const faceapi = require('face-api.js');
+const faceapi = require('face-api.js');
 
 var video = document.querySelector("#videoElement");
 
