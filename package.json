@@ -19,6 +19,7 @@
   "homepage": "https://github.com/abhinavdalal-iconnect/face-auth#readme",
   "dependencies": {
     "express": "^4.16.4",
+    "face-api.js": "^0.20.0",
     "nodemon": "^1.19.0"
   }
 }
